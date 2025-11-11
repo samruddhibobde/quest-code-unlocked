@@ -2,13 +2,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Zap, Flame, Target, Star, Code2, Award, TrendingUp, BookOpen, Sword, Users, Calendar, User } from "lucide-react";
+import { Trophy, Zap, Flame, Target, Star, Code2, Award, TrendingUp, BookOpen, Sword, Users, Calendar, User, UsersRound } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { mockQuests, mockBadges } from "@/mock/data";
+import ChatDrawer from "@/components/chatbot/ChatDrawer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { mentorRequests } from "@/mock/mentorRequests";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [topic, setTopic] = useState<string>("");
   
   const userStats = {
     level: 12,
@@ -32,7 +42,11 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto max-w-7xl p-8">
+      <div className="container mx-auto max-w-7xl p-8 relative">
+        <div className="absolute top-4 left-4">
+          {/* Back button to get-started for quick access */}
+          <Button variant="link" onClick={() => navigate('/learner/get-started')}>← Back</Button>
+        </div>
         {/* Header */}
         <div className="mb-8 animate-slide-up">
           <h1 className="text-4xl font-bold mb-2">Welcome back, Adventurer!</h1>
@@ -120,34 +134,64 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Badges */}
+          {/* Connect with Mentor (Dedicated Section) */}
           <Card className="border-primary/20 animate-slide-up" style={{ animationDelay: '0.3s' }}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-accent" />
-                Badges
+                <UsersRound className="w-5 h-5" />
+                Need Help? Connect with a Mentor
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                {mockBadges.map((badge) => (
-                  <div 
-                    key={badge.id}
-                    className={`p-4 rounded-lg border ${
-                      badge.earned 
-                        ? 'border-accent bg-accent/10' 
-                        : 'border-border opacity-50'
-                    } text-center transition-all hover:scale-105`}
-                  >
-                    {badge.earned ? <Star className="w-8 h-8 mx-auto mb-2 text-accent" /> : <Star className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />}
-                    <p className="text-xs font-medium">{badge.name}</p>
-                  </div>
-                ))}
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">Request personalized support or schedule a live session.</p>
+              <div className="flex justify-between items-center">
+                <Button onClick={() => setRequestOpen(true)}>Request Mentor Support</Button>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-2">My Mentor Requests</p>
+                <div className="space-y-2">
+                  {mentorRequests.length === 0 && <p className="text-xs text-muted-foreground">No requests yet.</p>}
+                  {mentorRequests.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between text-sm p-2 border rounded">
+                      <span>{r.topic}</span>
+                      <span className="text-xs rounded-full px-2 py-0.5 bg-secondary text-secondary-foreground">{r.status}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+    <ChatDrawer />
+
+    {/* Mentor Request Modal */}
+    <Dialog open={requestOpen} onOpenChange={setRequestOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Request a Mentor Session</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Label>Topic / Problem Area</Label>
+          <Select value={topic} onValueChange={setTopic}>
+            <SelectTrigger><SelectValue placeholder="Choose a topic" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="loops">Loops</SelectItem>
+              <SelectItem value="arrays">Arrays</SelectItem>
+              <SelectItem value="recursion">Recursion</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex justify-end">
+            <Button onClick={() => {
+              if (!topic) return;
+              mentorRequests.push({ id: Date.now(), student: "You", topic, status: "Pending" });
+              toast({ title: "Mentor request sent!" });
+              setRequestOpen(false);
+            }}>Submit</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
     </Layout>
   );
 };

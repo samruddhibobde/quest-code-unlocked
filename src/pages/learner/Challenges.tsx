@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,9 +8,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Code2, Search } from "lucide-react";
 import { mockChallenges } from "@/mock/data";
 import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { challenges as timedChallenges } from "@/mock/challenges";
 
 const Challenges = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [remaining, setRemaining] = useState<number>(0);
+  const timerRef = useRef<number | null>(null);
+  const [timeUpOpen, setTimeUpOpen] = useState(false);
   const [difficulty, setDifficulty] = useState('all');
   const [language, setLanguage] = useState('all');
 
@@ -18,6 +26,34 @@ const Challenges = () => {
     (difficulty === 'all' || c.difficulty.toLowerCase() === difficulty) &&
     (language === 'all' || c.language === language)
   );
+
+  useEffect(() => {
+    if (activeId == null) return;
+    if (remaining <= 0 && activeId != null) {
+      setTimeUpOpen(true);
+      setActiveId(null);
+      if (timerRef.current) window.clearInterval(timerRef.current);
+      toast({ title: "Time’s up! Your solution has been submitted." });
+      return;
+    }
+    timerRef.current = window.setInterval(() => setRemaining((s) => s - 1));
+    return () => {
+      if (timerRef.current) window.clearInterval(timerRef.current);
+    };
+  }, [activeId, remaining, toast]);
+
+  const startChallenge = (id: number) => {
+    const meta = timedChallenges.find(c => c.id === id) || timedChallenges[0];
+    setActiveId(id);
+    setRemaining(meta.timeLimit);
+    toast({ title: "Challenge started", description: `Timer: ${Math.floor(meta.timeLimit/60)} min` });
+  };
+
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60).toString().padStart(2, "0");
+    const ss = Math.floor(s % 60).toString().padStart(2, "0");
+    return `${m}:${ss}`;
+  };
 
   return (
     <Layout>
@@ -64,7 +100,7 @@ const Challenges = () => {
         {/* Challenge List */}
         <div className="space-y-4">
           {filteredChallenges.map((challenge) => (
-            <Card 
+              <Card 
               key={challenge.id} 
               className="border-primary/20 hover:border-primary transition-all cursor-pointer"
               onClick={() => navigate('/learner/editor')}
@@ -95,15 +131,27 @@ const Challenges = () => {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <Badge variant="outline">{challenge.language}</Badge>
-                  <Button variant="ghost" size="sm">
-                    Solve Challenge →
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    {activeId === challenge.id && <span className="text-sm font-mono">{fmt(remaining)}</span>}
+                    <Button size="sm" onClick={(e) => { e.stopPropagation(); startChallenge(challenge.id); }}>
+                      {activeId === challenge.id ? "Restart" : "Start Challenge"}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
+
+      <Dialog open={timeUpOpen} onOpenChange={setTimeUpOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Time’s up!</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm">Your solution has been auto-submitted. Check results in the editor.</div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
