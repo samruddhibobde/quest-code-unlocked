@@ -15,10 +15,22 @@ export default function AdminDashboardPage() {
 					<Card><CardHeader><CardTitle>Logins Today</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{adminAnalytics.loginsToday}</CardContent></Card>
 				</div>
 				<div className="grid md:grid-cols-4 gap-4">
-					<Card><CardHeader><CardTitle>Revenue (Mo)</CardTitle></CardHeader><CardContent className="text-2xl font-bold">${adminAnalytics.revenueMonth.toFixed(2)}</CardContent></Card>
-					<Card><CardHeader><CardTitle>Premium Subs</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{adminAnalytics.premiumSubscribers}</CardContent></Card>
-					<Card><CardHeader><CardTitle>Payments Success</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{adminAnalytics.payments.success}</CardContent></Card>
-					<Card><CardHeader><CardTitle>Certificates</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{certificates.length}</CardContent></Card>
+					<Card>
+						<CardHeader><CardTitle>Revenue (Mo)</CardTitle></CardHeader>
+						<CardContent className="text-2xl font-bold">₹{adminAnalytics.revenueMonth.toFixed(2)}</CardContent>
+					</Card>
+					<Card>
+						<CardHeader><CardTitle>Premium Subs</CardTitle></CardHeader>
+						<CardContent className="text-2xl font-bold">{adminAnalytics.premiumSubscribers}</CardContent>
+					</Card>
+					<Card>
+						<CardHeader><CardTitle>Payments Success</CardTitle></CardHeader>
+						<CardContent className="text-2xl font-bold">{adminAnalytics.payments.success}</CardContent>
+					</Card>
+					<Card>
+						<CardHeader><CardTitle>Generated Certificates</CardTitle></CardHeader>
+						<CardContent className="text-2xl font-bold">{certificates.length}</CardContent>
+					</Card>
 				</div>
 				<div className="grid md:grid-cols-2 gap-6">
 					<Card>
@@ -50,7 +62,7 @@ export default function AdminDashboardPage() {
 						{payments.map(p => (
 							<div key={p.id} className="p-2 border rounded text-sm flex items-center justify-between">
 								<span>{p.user}</span>
-								<span>${p.amount.toFixed(2)}</span>
+								<span>₹{p.amount.toFixed(2)}</span>
 								<span className="text-xs rounded-full px-2 py-0.5 bg-secondary text-secondary-foreground">{p.status}</span>
 							</div>
 						))}
@@ -60,5 +72,3 @@ export default function AdminDashboardPage() {
 		</Layout>
 	);
 }
-
-
