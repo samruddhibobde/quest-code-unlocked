@@ -1,21 +1,30 @@
 import { Button } from "@/components/ui/button";
 import { Code2, Zap, Trophy, Users, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import heroBg from "@/assets/hero-bg.jpg";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Index = () => {
+  const { themeConfig } = useTheme();
+  
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
       <section 
         className="relative min-h-screen flex items-center justify-center overflow-hidden"
         style={{
-          backgroundImage: `url(${heroBg})`,
+          backgroundImage: `url(${themeConfig.background})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
         }}
       >
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+        
+        {/* Theme Switcher - Top Right */}
+        <div className="absolute top-6 right-6 z-20">
+          <ThemeSwitcher />
+        </div>
         
         <div className="relative z-10 container mx-auto px-4 text-center">
           <div className="animate-slide-up">

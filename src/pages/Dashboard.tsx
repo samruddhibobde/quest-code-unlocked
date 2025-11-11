@@ -2,10 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Zap, Flame, Target, Star, Code2, Award, TrendingUp } from "lucide-react";
-import dashboardBg from "@/assets/dashboard-bg.jpg";
+import { Trophy, Zap, Flame, Target, Star, Code2, Award, TrendingUp, BookOpen, Sword, Users, Calendar, User } from "lucide-react";
+import { Layout } from "@/components/Layout";
+import { useNavigate } from "react-router-dom";
+import { mockQuests, mockBadges } from "@/mock/data";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  
   const userStats = {
     level: 12,
     xp: 2450,
@@ -15,35 +19,40 @@ const Dashboard = () => {
     rank: 342,
   };
 
-  const quests = [
-    { id: 1, title: "Master Python Loops", progress: 75, xp: 150, difficulty: "Medium" },
-    { id: 2, title: "Defeat the Array Boss", progress: 30, xp: 300, difficulty: "Hard" },
-    { id: 3, title: "Function Fundamentals", progress: 100, xp: 100, difficulty: "Easy" },
-  ];
-
-  const badges = [
-    { name: "First Steps", icon: Star, earned: true },
-    { name: "Week Warrior", icon: Flame, earned: true },
-    { name: "Code Master", icon: Trophy, earned: false },
-    { name: "Bug Hunter", icon: Target, earned: true },
+  const quickLinks = [
+    { icon: BookOpen, label: 'Tutorials', path: '/learner/tutorials', color: 'text-primary' },
+    { icon: Code2, label: 'Editor', path: '/learner/editor', color: 'text-secondary' },
+    { icon: Sword, label: 'Challenges', path: '/learner/challenges', color: 'text-destructive' },
+    { icon: Trophy, label: 'Gamification', path: '/learner/gamification', color: 'text-accent' },
+    { icon: Target, label: 'Quests', path: '/learner/quests', color: 'text-primary' },
+    { icon: Users, label: 'Leaderboard', path: '/learner/leaderboard', color: 'text-secondary' },
+    { icon: Calendar, label: 'Tracker', path: '/learner/tracker', color: 'text-success' },
+    { icon: User, label: 'Avatar', path: '/learner/avatar', color: 'text-accent' },
   ];
 
   return (
-    <div 
-      className="min-h-screen p-8"
-      style={{
-        backgroundImage: `url(${dashboardBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
-    >
-      <div className="absolute inset-0 bg-background/90 backdrop-blur-sm" />
-      
-      <div className="relative z-10 container mx-auto max-w-7xl">
+    <Layout>
+      <div className="container mx-auto max-w-7xl p-8">
         {/* Header */}
         <div className="mb-8 animate-slide-up">
           <h1 className="text-4xl font-bold mb-2">Welcome back, Adventurer!</h1>
           <p className="text-muted-foreground">Continue your coding quest</p>
+        </div>
+
+        {/* Quick Links */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 animate-slide-up">
+          {quickLinks.map((link) => (
+            <Card 
+              key={link.path}
+              className="border-primary/20 hover:border-primary cursor-pointer transition-all hover:scale-105"
+              onClick={() => navigate(link.path)}
+            >
+              <CardContent className="p-6 text-center">
+                <link.icon className={`w-8 h-8 mx-auto mb-2 ${link.color}`} />
+                <p className="font-medium">{link.label}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Stats Grid */}
@@ -105,7 +114,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {quests.map((quest) => (
+              {mockQuests.slice(0, 3).map((quest) => (
                 <QuestCard key={quest.id} quest={quest} />
               ))}
             </CardContent>
@@ -121,16 +130,16 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
-                {badges.map((badge) => (
+                {mockBadges.map((badge) => (
                   <div 
-                    key={badge.name}
+                    key={badge.id}
                     className={`p-4 rounded-lg border ${
                       badge.earned 
                         ? 'border-accent bg-accent/10' 
                         : 'border-border opacity-50'
                     } text-center transition-all hover:scale-105`}
                   >
-                    <badge.icon className={`w-8 h-8 mx-auto mb-2 ${badge.earned ? 'text-accent' : 'text-muted-foreground'}`} />
+                    {badge.earned ? <Star className="w-8 h-8 mx-auto mb-2 text-accent" /> : <Star className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />}
                     <p className="text-xs font-medium">{badge.name}</p>
                   </div>
                 ))}
@@ -139,7 +148,7 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 
