@@ -2,27 +2,49 @@ import { Layout } from "@/components/Layout";
 import BackButton from "@/components/common/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionCard } from "@/components/mentor/SessionCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { upcomingSessions, pastSessions, MentorSessionItem } from "@/mock/sessions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 export default function MentorSessionsPage() {
-	const [upcoming, setUpcoming] = useState(upcomingSessions);
-	const [past, setPast] = useState(pastSessions);
-	const [active, setActive] = useState<MentorSessionItem | null>(null);
+	const [upcoming, setUpcoming] = useState<any[]>([]);
+	const [past, setPast] = useState<any[]>([]);
+	const [active, setActive] = useState<any | null>(null);
 	const [roomOpen, setRoomOpen] = useState(false);
 	const [scheduleOpen, setScheduleOpen] = useState(false);
 	const [title, setTitle] = useState("");
 	const [student, setStudent] = useState("");
 	const [time, setTime] = useState("");
+	const [loadingSessions, setLoadingSessions] = useState(true);
+	const { toast } = useToast();
+
+	useEffect(() => {
+		const token = localStorage.getItem("token");
+		if (!token) return;
+		fetch("http://localhost:5000/api/users/sessions", {
+			headers: { Authorization: `Bearer ${token}` }
+		})
+			.then(res => res.json())
+			.then(data => {
+				const all = data.sessions || [];
+				setUpcoming(all.filter((s: any) => s.status !== "Completed"));
+				setPast(all.filter((s: any) => s.status === "Completed"));
+			})
+			.catch(() => {})
+			.finally(() => setLoadingSessions(false));
+	}, []);
 
 	return (
 		<Layout>
-			<div className="container mx-auto max-w-6xl p-6 space-y-6">
+			<div className="container mx-auto max-w-7xl p-6">
 				<BackButton />
+				<div className="mb-8">
+					<h1 className="text-4xl font-bold mb-2">Live Sessions</h1>
+					<p className="text-muted-foreground">Monitor and manage active mentoring sessions</p>
+				</div>
 
 				<div className="flex justify-end">
 					<Button onClick={() => setScheduleOpen(true)}>Schedule New Session</Button>
@@ -76,11 +98,17 @@ export default function MentorSessionsPage() {
 						</div>
 					</div>
 					<div className="flex justify-end">
-						<Button onClick={() => {
-							if (active) {
+						<Button onClick={async () => {
+							if (!active) return;
+							const token = localStorage.getItem("token");
+							try {
+								await fetch(`http://localhost:5000/api/users/sessions/${active.id}/complete`, {
+									method: "PATCH",
+									headers: { Authorization: `Bearer ${token}` },
+								});
 								setUpcoming(prev => prev.filter(x => x.id !== active.id));
 								setPast(prev => [{ ...active, status: "Completed" }, ...prev]);
-							}
+							} catch {}
 							setRoomOpen(false);
 						}}>End Session</Button>
 					</div>
@@ -107,11 +135,25 @@ export default function MentorSessionsPage() {
 							<Input value={time} onChange={(e) => setTime(e.target.value)} placeholder="e.g., Tomorrow 3 PM" />
 						</div>
 						<div className="flex justify-end">
-							<Button onClick={() => {
+							<Button onClick={async () => {
 								if (!title || !student || !time) return;
-								setUpcoming(prev => [{ id: Date.now(), title, student, time, status: "Scheduled" }, ...prev]);
-								setScheduleOpen(false);
-								setTitle(""); setStudent(""); setTime("");
+								const token = localStorage.getItem("token");
+								try {
+									const res = await fetch("http://localhost:5000/api/users/sessions", {
+										method: "POST",
+										headers: {
+											"Content-Type": "application/json",
+											Authorization: `Bearer ${token}`,
+										},
+										body: JSON.stringify({ title, student, time }),
+									});
+									const data = await res.json();
+									setUpcoming(prev => [data.session, ...prev]);
+									setScheduleOpen(false);
+									setTitle(""); setStudent(""); setTime("");
+								} catch {
+									toast({ title: "Failed to schedule session", variant: "destructive" });
+								}
 							}}>Add</Button>
 						</div>
 					</div>

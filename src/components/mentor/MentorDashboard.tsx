@@ -1,254 +1,259 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
-import { students, sessions, mentorStats, type MentorStudent, type MentorSession } from "@/mock/mentorData";
-import { StudentCard } from "./StudentCard";
-import { SessionCard } from "./SessionCard";
-import { Users, Star, MessageCircle, BookOpen, Gauge, CalendarDays, HelpCircle } from "lucide-react";
-import { studentDoubts } from "@/mock/doubts";
-
-function StatCard({
-	title,
-	value,
-	icon,
-}: {
-	title: string;
-	value: number | string;
-	icon: React.ReactNode;
-}) {
-	return (
-		<Card>
-			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-				<CardTitle className="text-sm font-medium">{title}</CardTitle>
-				<span className="text-muted-foreground">{icon}</span>
-			</CardHeader>
-			<CardContent>
-				<div className="text-2xl font-bold">{value}</div>
-			</CardContent>
-		</Card>
-	);
-}
+import React, { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Users, BookOpen, Video, TrendingUp, MessageSquare, CheckCircle } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { supportAPI } from "@/services/api"
 
 export default function MentorDashboard() {
-	const navigate = useNavigate();
-	const { toast } = useToast();
-	const [loading, setLoading] = useState(false);
-	const [selectedStudent, setSelectedStudent] = useState<MentorStudent | null>(null);
-	const [liveSession, setLiveSession] = useState<MentorSession | null>(null);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [supportRequests, setSupportRequests] = useState<any[]>([]);
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [response, setResponse] = useState("");
+  const { toast } = useToast();
 
-	const weakStudents = useMemo(() => students.filter(s => s.performance === "Weak"), []);
-	const brightStudents = useMemo(() => students.filter(s => s.performance === "Bright"), []);
-	const averageStudents = useMemo(() => students.filter(s => s.performance === "Average"), []);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) { window.location.href = "/auth"; return; }
 
-	return (
-		<div className="space-y-6">
-			{/* Top actions */}
-			<div className="flex flex-wrap gap-2">
-				<Button variant="secondary" onClick={() => navigate("/mentor/tutorials")}>
-					<BookOpen className="mr-2 h-4 w-4" /> Tutorials
-				</Button>
-				<Button variant="secondary" onClick={() => navigate("/mentor/students")}>
-					<Users className="mr-2 h-4 w-4" /> Students
-				</Button>
-				<Button variant="secondary" onClick={() => navigate("/mentor/feedback/queue")}>
-					<MessageCircle className="mr-2 h-4 w-4" /> Feedback Queue
-				</Button>
-				<Button variant="secondary" onClick={() => navigate("/mentor/sessions")}>
-					<CalendarDays className="mr-2 h-4 w-4" /> Session Management
-				</Button>
-			</div>
+    const fetchAll = async () => {
+      try {
+        // Fetch mentor stats
+        const statsRes = await fetch("http://localhost:5000/api/users/mentor-stats", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (statsRes.status === 401) { window.location.href = "/auth"; return; }
+        const statsData = await statsRes.json();
+        setData(statsData);
 
-			{/* Stats */}
-			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-				<StatCard title="Total Students" value={mentorStats.totalStudents} icon={<Users className="h-5 w-5" />} />
-				<StatCard title="Weak Students" value={mentorStats.weakStudents} icon={<Gauge className="h-5 w-5" />} />
-				<StatCard title="Bright Students" value={mentorStats.brightStudents} icon={<Star className="h-5 w-5" />} />
-				<StatCard title="Pending Feedbacks" value={mentorStats.pendingFeedbacks} icon={<MessageCircle className="h-5 w-5" />} />
-				<StatCard title="Active Sessions" value={mentorStats.activeSessions} icon={<BookOpen className="h-5 w-5" />} />
-			</div>
+        // Fetch support requests
+        try {
+          const requestsData = await supportAPI.getAllRequests();
+          setSupportRequests(requestsData.requests || []);
+        } catch (error) {
+          console.error("Failed to fetch support requests:", error);
+          setSupportRequests([]);
+        }
 
-			{/* Main content */}
-			<Tabs defaultValue="overview" className="w-full">
-				<TabsList className="grid w-full grid-cols-3">
-					<TabsTrigger value="overview">Students Overview</TabsTrigger>
-					<TabsTrigger value="sessions">Upcoming Sessions</TabsTrigger>
-					<TabsTrigger value="doubts">Student Doubts</TabsTrigger>
-				</TabsList>
-				<TabsContent value="overview" className="space-y-4">
-					<div className="grid gap-4 md:grid-cols-3">
-						<Card>
-							<CardHeader>
-								<CardTitle className="text-base">Weak Students</CardTitle>
-							</CardHeader>
-							<CardContent className="grid gap-3">
-								{loading ? (
-									<div className="space-y-3">
-										<Skeleton className="h-20 w-full" />
-										<Skeleton className="h-20 w-full" />
-									</div>
-								) : weakStudents.length ? (
-									weakStudents.map(s => (
-										<StudentCard key={s.id} student={s} onClick={setSelectedStudent} />
-									))
-								) : (
-									<p className="text-sm text-muted-foreground">No weak students right now.</p>
-								)}
-							</CardContent>
-						</Card>
-						<Card>
-							<CardHeader>
-								<CardTitle className="text-base">Average Students</CardTitle>
-							</CardHeader>
-							<CardContent className="grid gap-3">
-								{loading ? (
-									<div className="space-y-3">
-										<Skeleton className="h-20 w-full" />
-										<Skeleton className="h-20 w-full" />
-									</div>
-								) : averageStudents.length ? (
-									averageStudents.map(s => (
-										<StudentCard key={s.id} student={s} onClick={setSelectedStudent} />
-									))
-								) : (
-									<p className="text-sm text-muted-foreground">No average students yet.</p>
-								)}
-							</CardContent>
-						</Card>
-						<Card>
-							<CardHeader>
-								<CardTitle className="text-base">Bright Students</CardTitle>
-							</CardHeader>
-							<CardContent className="grid gap-3">
-								{loading ? (
-									<div className="space-y-3">
-										<Skeleton className="h-20 w-full" />
-										<Skeleton className="h-20 w-full" />
-									</div>
-								) : brightStudents.length ? (
-									brightStudents.map(s => (
-										<StudentCard key={s.id} student={s} onClick={setSelectedStudent} />
-									))
-								) : (
-									<p className="text-sm text-muted-foreground">No bright students yet.</p>
-								)}
-							</CardContent>
-						</Card>
-					</div>
-				</TabsContent>
-				<TabsContent value="sessions" className="space-y-4">
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-base">Upcoming Sessions</CardTitle>
-						</CardHeader>
-						<CardContent className="grid gap-3">
-							{sessions.map(sess => (
-								<SessionCard
-									key={sess.id}
-									session={sess}
-									onStart={(s) => {
-										setLiveSession(s);
-										toast({
-											title: "Starting session",
-											description: `Opening live session: ${s.title}`,
-										});
-									}}
-								/>
-							))}
-						</CardContent>
-					</Card>
-				</TabsContent>
-				<TabsContent value="doubts" className="space-y-4">
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-base flex items-center gap-2">
-								<HelpCircle className="h-4 w-4" />
-								Student Doubts / Questions
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-2">
-							{studentDoubts.map(d => (
-								<div key={d.id} className="p-3 border rounded flex items-start justify-between gap-3">
-									<div className="min-w-0">
-										<p className="font-medium truncate">{d.student} • {d.topic}</p>
-										<p className="text-xs text-muted-foreground">{d.description}</p>
-										<p className="text-xs text-muted-foreground">{d.createdAt}</p>
-									</div>
-									<span className="text-xs rounded-full px-2 py-1 bg-secondary text-secondary-foreground">{d.status}</span>
-								</div>
-							))}
-							{studentDoubts.length === 0 && <p className="text-sm text-muted-foreground">No doubts raised yet.</p>}
-						</CardContent>
-					</Card>
-				</TabsContent>
-			</Tabs>
+      } catch (error) {
+        toast({ title: "Failed to load dashboard", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-			{/* Student Drawer */}
-			<Drawer open={!!selectedStudent} onOpenChange={(open) => !open && setSelectedStudent(null)}>
-				<DrawerContent className="max-h-[85vh]">
-					<DrawerHeader>
-						<DrawerTitle>{selectedStudent?.name}</DrawerTitle>
-						<DrawerDescription>
-							{selectedStudent?.level} • {selectedStudent?.language}
-						</DrawerDescription>
-					</DrawerHeader>
-					<div className="p-4 grid gap-4 md:grid-cols-2">
-						<Card>
-							<CardHeader>
-								<CardTitle className="text-sm">Progress</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="h-40 w-full rounded-md bg-muted flex items-center justify-center text-muted-foreground">
-									Mock Progress Chart
-								</div>
-							</CardContent>
-						</Card>
-						<Card>
-							<CardHeader>
-								<CardTitle className="text-sm">Recent Challenges</CardTitle>
-							</CardHeader>
-							<CardContent className="space-y-2 text-sm">
-								<ul className="list-disc pl-4 space-y-1">
-									<li>Two Sum</li>
-									<li>Reverse String</li>
-									<li>Binary Search</li>
-								</ul>
-								<Button
-									className="mt-3"
-									onClick={() => {
-										if (!selectedStudent) return;
-										navigate(`/mentor/feedback/${selectedStudent.id}`);
-									}}
-								>
-									Give Feedback
-								</Button>
-							</CardContent>
-						</Card>
-					</div>
-				</DrawerContent>
-			</Drawer>
+    fetchAll();
+  }, []);
 
-			{/* Live Session Modal */}
-			<Dialog open={!!liveSession} onOpenChange={(open) => !open && setLiveSession(null)}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Live Session</DialogTitle>
-						<DialogDescription>
-							Placeholder for live session with {liveSession?.student}
-						</DialogDescription>
-					</DialogHeader>
-					<div className="h-48 w-full rounded-md bg-muted flex items-center justify-center text-muted-foreground">
-						Live session UI coming soon
-					</div>
-				</DialogContent>
-			</Dialog>
-		</div>
-	);
+  if (loading) return <div className="text-center py-8">Loading dashboard...</div>;
+  if (!data) return <div className="text-center py-8 text-destructive">Failed to load data.</div>;
+
+  return (
+    <>
+      <div className="space-y-6">
+        {/* Welcome */}
+        <div>
+          <h2 className="text-2xl font-bold">Welcome, {data.mentor.name}!</h2>
+          <p className="text-muted-foreground">Here is your mentoring overview</p>
+        </div>
+
+        {/* Stats grid */}
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card className="border-primary/20">
+            <CardContent className="p-6 text-center">
+              <Users className="w-8 h-8 mx-auto mb-2 text-primary" />
+              <p className="text-3xl font-bold">{data.stats.totalStudents}</p>
+              <p className="text-sm text-muted-foreground">Total Learners</p>
+            </CardContent>
+          </Card>
+          <Card className="border-accent/20">
+            <CardContent className="p-6 text-center">
+              <BookOpen className="w-8 h-8 mx-auto mb-2 text-accent" />
+              <p className="text-3xl font-bold">{data.stats.totalTutorials}</p>
+              <p className="text-sm text-muted-foreground">Tutorials Available</p>
+            </CardContent>
+          </Card>
+          <Card className="border-destructive/20">
+            <CardContent className="p-6 text-center">
+              <Video className="w-8 h-8 mx-auto mb-2 text-destructive" />
+              <p className="text-3xl font-bold">{data.stats.activeSessions}</p>
+              <p className="text-sm text-muted-foreground">Active Sessions</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Top students */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              Top Performing Learners
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {data.topStudents.length === 0 && (
+              <p className="text-sm text-muted-foreground">No learners registered yet.</p>
+            )}
+            {data.topStudents.map((student: any, i: number) => (
+              <div key={student._id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-bold text-muted-foreground">#{i + 1}</span>
+                  <div>
+                    <p className="font-medium">{student.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Level {student.level} · {student.solvedProblems} problems solved
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="outline">{student.points} XP</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Support Requests */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              Support Requests ({supportRequests.filter(r => r.status === 'pending').length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {supportRequests.length === 0 && (
+              <p className="text-sm text-muted-foreground">No support requests yet.</p>
+            )}
+            {supportRequests.map((request) => (
+              <div key={request._id} className="flex items-start justify-between p-4 border rounded-lg">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="font-medium">{request.userId.name}</p>
+                    <Badge variant={
+                      request.status === 'resolved' ? 'default' : 'secondary'
+                    }>
+                      {request.status}
+                    </Badge>
+                    <Badge variant="outline">
+                      {request.category}
+                    </Badge>
+                  </div>
+                  <p className="font-medium text-sm mb-1">{request.title}</p>
+                  <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
+                    {request.description}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(request.createdAt).toLocaleDateString()} at {new Date(request.createdAt).toLocaleTimeString()}
+                  </p>
+                  {request.mentorResponse && (
+                    <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
+                      <p className="font-medium text-sm text-green-800 mb-1">Your Response:</p>
+                      <p className="text-sm text-green-700">{request.mentorResponse}</p>
+                    </div>
+                  )}
+                </div>
+                {request.status === 'pending' && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setResolveDialogOpen(true);
+                    }}
+                  >
+                    Resolve
+                  </Button>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Resolve Request Dialog */}
+      <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Resolve Support Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Learner</Label>
+              <p className="font-medium">{selectedRequest?.userId?.name}</p>
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Badge variant="outline">{selectedRequest?.category}</Badge>
+            </div>
+            <div>
+              <Label>Title</Label>
+              <p className="font-medium">{selectedRequest?.title}</p>
+            </div>
+            <div>
+              <Label>Description</Label>
+              <div className="p-3 bg-gray-50 rounded border">
+                <p className="text-sm">{selectedRequest?.description}</p>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="response">Your Response</Label>
+              <Textarea
+                id="response"
+                value={response}
+                onChange={(e) => setResponse(e.target.value)}
+                placeholder="Enter your detailed response to help the learner..."
+                className="min-h-[120px]"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => {
+                setResolveDialogOpen(false);
+                setSelectedRequest(null);
+                setResponse("");
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={async () => {
+                if (!response.trim() || !selectedRequest) return;
+                
+                try {
+                  await supportAPI.resolveRequest(selectedRequest._id, response);
+                  toast({ title: "Request resolved successfully!" });
+                  
+                  // Update the request in the local state
+                  setSupportRequests(prev => 
+                    prev.map(req => 
+                      req._id === selectedRequest._id 
+                        ? { ...req, status: 'resolved', mentorResponse: response }
+                        : req
+                    )
+                  );
+                  
+                  setResolveDialogOpen(false);
+                  setSelectedRequest(null);
+                  setResponse("");
+                } catch (error) {
+                  toast({ 
+                    title: "Failed to resolve request", 
+                    variant: "destructive" 
+                  });
+                }
+              }}>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Resolve
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
 
 

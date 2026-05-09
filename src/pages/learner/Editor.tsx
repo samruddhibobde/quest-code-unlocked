@@ -2,20 +2,28 @@ import { useEffect, useRef, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Play, Save, Lightbulb, Zap, Pause, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLocation } from "react-router-dom";
+import { default as MonacoEditor } from "@monaco-editor/react";
 import PowersRail from "@/components/editor/PowersRail";
+import BackButton from "@/components/common/BackButton";
 
 const AUTOSAVE_KEY = "editor-autosave";
 
 const Editor = () => {
+  const location = useLocation();
+  const problem = location.state?.problem || null;
   const { toast } = useToast();
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("python");
   const [code, setCode] = useState<string>(() => {
     const saved = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || "{}");
-    return saved.code ?? '# Write your code here\n\ndef solution():\n    pass';
+    if (saved.code) return saved.code;
+    if (problem?.starterCode?.python) return problem.starterCode.python;
+    return "# Write your code here\n\ndef solution():\n    pass";
   });
   const [results, setResults] = useState<any>(null);
   const [running, setRunning] = useState(false);
@@ -106,7 +114,7 @@ const Editor = () => {
     });
   };
 
-  const submitSolution = (auto = false) => {
+  const submitSolution = async (auto = false) => {
     setResults({
       passed: 4,
       total: 5,
@@ -120,8 +128,30 @@ const Editor = () => {
         { name: 'Test 5', passed: false, visible: false },
       ]
     });
+    
+    // Award points on successful manual submission
+    if (!auto && problem) {
+      try {
+        const token = localStorage.getItem("token");
+        await fetch("http://localhost:5000/api/users/add-points", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ points: problem.xp ?? 100 }),
+        });
+        toast({
+          title: " Points Awarded!",
+          description: `+${problem.xp ?? 100} XP added to your profile`,
+        });
+      } catch (err) {
+        console.error("Failed to award points:", err);
+      }
+    }
+    
     if (auto) {
-      toast({ title: "Time’s up! Auto-submitted." });
+      toast({ title: "Time's up! Auto-submitted." });
     } else {
       toast({ title: "Submitted!" });
     }
@@ -139,9 +169,17 @@ const Editor = () => {
     return `${m}:${ss}`;
   };
 
+  const handleLanguageChange = (lang: string) => {
+    setSelectedLanguage(lang);
+    if (problem?.starterCode?.[lang]) {
+      setCode(problem.starterCode[lang]);
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto max-w-7xl p-8">
+        <BackButton />
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Code Editor</h1>
           <p className="text-muted-foreground">Write, test, and submit your solution</p>
@@ -151,26 +189,33 @@ const Editor = () => {
           {/* Problem Statement */}
           <Card className="border-primary/20">
             <CardHeader>
-              <CardTitle>Two Sum Problem</CardTitle>
+              <CardTitle>{problem ? problem.title : "Select a Challenge"}</CardTitle>
               <CardDescription>
-                <Badge>Easy</Badge>
-                <span className="ml-2 text-accent">+100 XP</span>
+                {problem && <Badge variant={
+                  problem.difficulty === 'Easy' ? 'default' : 
+                  problem.difficulty === 'Medium' ? 'outline' : 
+                  'destructive'
+                }>{problem.difficulty}</Badge>}
+                {problem && <span className="ml-2 text-accent">+{problem.xp} XP</span>}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <h3 className="font-semibold mb-2">Problem:</h3>
                 <p className="text-muted-foreground">
-                  Given an array of integers and a target value, return indices of the two numbers that add up to the target.
+                  {problem ? problem.description : "Go to Challenges page and select a problem to begin."}
                 </p>
               </div>
-              <div>
-                <h3 className="font-semibold mb-2">Example:</h3>
-                <pre className="bg-muted p-3 rounded text-sm">
-                  Input: nums = [2,7,11,15], target = 9{'\n'}
-                  Output: [0,1]
-                </pre>
-              </div>
+              {problem?.testCases && (
+                <div>
+                  <h3 className="font-semibold mb-2">Test Cases:</h3>
+                  {problem.testCases.slice(0, 2).map((tc: any, i: number) => (
+                    <pre key={i} className="bg-muted p-3 rounded text-sm mt-2">
+                      Input: {tc.input}{"\n"}Expected: {tc.expectedOutput}
+                    </pre>
+                  ))}
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button variant="outline" size="sm">
                   <Lightbulb className="w-4 h-4 mr-2" />
@@ -190,13 +235,35 @@ const Editor = () => {
             <Card className="border-primary/20">
               <CardHeader>
                 <CardTitle className="text-lg">Code Editor</CardTitle>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Language:</label>
+                  <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(!problem || problem.tags.includes('python')) && <SelectItem value="python">Python</SelectItem>}
+                      {(!problem || problem.tags.includes('javascript')) && <SelectItem value="javascript">JavaScript</SelectItem>}
+                      {(!problem || problem.tags.includes('cpp')) && <SelectItem value="cpp">C++</SelectItem>}
+                      {(!problem || problem.tags.includes('java')) && <SelectItem value="java">Java</SelectItem>}
+                      {(!problem || problem.tags.includes('c')) && <SelectItem value="c">C</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
               <CardContent>
-                <Textarea 
+                <MonacoEditor
+                  height="350px"
+                  language={selectedLanguage === "cpp" ? "cpp" : selectedLanguage === "java" ? "java" : selectedLanguage === "c" ? "c" : selectedLanguage === "javascript" ? "javascript" : "python"}
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="font-mono min-h-[300px] resize-none"
-                  placeholder="Write your code here..."
+                  onChange={(val) => setCode(val || "")}
+                  theme="vs-dark"
+                  options={{
+                    fontSize: 14,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                  }}
                 />
                 <div className="flex gap-2 mt-4">
                   <Button onClick={handleRun} disabled={running}>

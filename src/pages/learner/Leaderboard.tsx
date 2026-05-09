@@ -4,11 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, TrendingUp, Flame } from "lucide-react";
 import { mockLeaderboard } from "@/mock/data";
+import BackButton from "@/components/common/BackButton";
 
 const Leaderboard = () => {
   return (
     <Layout>
       <div className="container mx-auto max-w-5xl p-8">
+        <BackButton />
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Leaderboard</h1>
           <p className="text-muted-foreground">Compete with coders worldwide</p>

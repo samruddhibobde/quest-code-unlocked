@@ -1,33 +1,73 @@
 import { Layout } from "@/components/Layout";
 import BackButton from "@/components/common/BackButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Lock, Play, CheckCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { useEffect, useMemo, useState } from "react";
-import { useTutorials } from "@/hooks/useTutorials";
+import { getTutorials, completeTutorial } from "@/services/apiClean";
 import { useToast } from "@/hooks/use-toast";
 import PremiumGate from "@/components/PremiumGate";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tutorial } from "@/services/api";
 
-const Tutorials = () => {
+interface Tutorial {
+  _id: string;
+  title: string;
+  videoUrl: string;
+  duration: string;
+  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  createdAt: string;
+  updatedAt: string;
+}
+
+const TutorialsClean = () => {
   const { toast } = useToast();
   const [level, setLevel] = useState<string>(localStorage.getItem("codequest-level") || "beginner");
   const [openVideo, setOpenVideo] = useState<null | { title: string; src?: string }>(null);
-  
-  const { 
-    tutorials, 
-    loading, 
-    error, 
-    completedTutorials, 
-    completeTutorial, 
-    isTutorialCompleted 
-  } = useTutorials();
+  const [tutorials, setTutorials] = useState<Tutorial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [completedTutorials, setCompletedTutorials] = useState<string[]>([]);
+
+  // Auto-redirect if not logged in
+  useEffect(() => {
+    console.log("=== TUTORIALS PAGE AUTH CHECK ===");
+    const token = localStorage.getItem("token");
+    console.log("Token:", token?.substring(0, 20) + '...');
+    
+    if (!token) {
+      console.error("No token found, redirecting to login");
+      window.location.href = "/login";
+      return;
+    }
+  }, []);
 
   useEffect(() => {
     setLevel(localStorage.getItem("codequest-level") || "beginner");
+  }, []);
+
+  // Fetch tutorials
+  useEffect(() => {
+    const fetchTutorials = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getTutorials();
+        console.log("Tutorials fetched:", response);
+        setTutorials(response.tutorials);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch tutorials';
+        setError(errorMessage);
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTutorials();
   }, []);
 
   const { beginner, intermediate, advanced } = useMemo(() => {
@@ -41,7 +81,15 @@ const Tutorials = () => {
 
   const isPremium = localStorage.getItem("codequest-premium") === "true";
 
+  const isTutorialCompleted = (tutorialId: string): boolean => {
+    return completedTutorials.includes(tutorialId);
+  };
+
   const handleCompleteTutorial = async (tutorial: Tutorial) => {
+    console.log("=== HANDLE COMPLETE TUTORIAL ===");
+    console.log("Tutorial:", tutorial.title);
+    console.log("Token:", localStorage.getItem("token")?.substring(0, 20) + '...');
+    
     if (isTutorialCompleted(tutorial._id)) {
       toast({
         title: "Already Completed",
@@ -51,27 +99,61 @@ const Tutorials = () => {
     }
 
     try {
-      await completeTutorial(tutorial._id);
+      const response = await completeTutorial(tutorial._id);
+      setCompletedTutorials(response.completedTutorials);
       
-      // Build local updatedCompleted array right after completeTutorial
-      const updatedCompleted = [...completedTutorials, tutorial._id];
+      toast({
+        title: 'Success!',
+        description: `Tutorial "${response.tutorialTitle}" marked as complete!`,
+      });
       
-      // Use updatedCompleted for progression checks
-      const beginnerCompleted = beginner.every(t => updatedCompleted.includes(t._id));
-      const intermediateCompleted = intermediate.every(t => updatedCompleted.includes(t._id));
+      // Check automatic progression
+      const beginnerCompleted = beginner.every(t => response.completedTutorials.includes(t._id));
+      const intermediateCompleted = intermediate.every(t => response.completedTutorials.includes(t._id));
       
       if (beginnerCompleted && level === "beginner") {
-        toast({ title: "Beginner path complete! Moving to Intermediate." });
+        toast({ title: "Complete Beginner Path!" });
         localStorage.setItem("codequest-level", "intermediate");
         setLevel("intermediate");
-        toast({ title: "You've unlocked Intermediate Tutorials!" });
+        toast({ title: "Intermediate Tutorials Unlocked!" });
       } else if (intermediateCompleted && level === "intermediate") {
         toast({ title: "Advanced content available. Unlock Premium to continue." });
       }
-    } catch (error) {
-      // Error is already handled in the hook
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to complete tutorial';
+      console.error('Tutorial completion error:', errorMessage);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto max-w-7xl p-8">
+          <div className="text-center py-8">
+            <p>Loading tutorials...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="container mx-auto max-w-7xl p-8">
+          <div className="text-center py-8">
+            <p className="text-red-500">Error: {error}</p>
+            <Button onClick={() => window.location.reload()} className="mt-4">Retry</Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -84,20 +166,7 @@ const Tutorials = () => {
           <p className="text-muted-foreground">Lessons by level. Your current level: <span className="font-medium capitalize">{level}</span></p>
         </div>
 
-        {loading && (
-          <div className="text-center py-8">
-            <p>Loading tutorials...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="text-center py-8">
-            <p className="text-red-500">Error: {error}</p>
-            <Button onClick={() => window.location.reload()} className="mt-4">Retry</Button>
-          </div>
-        )}
-
-        {!loading && !error && level === "beginner" && (
+        {level === "beginner" && (
           <div className="grid md:grid-cols-2 gap-6">
             {beginner.map((tutorial) => (
               <Card key={tutorial._id} className="border-primary/20 hover:border-primary transition-all">
@@ -118,16 +187,8 @@ const Tutorials = () => {
                       variant="secondary" 
                       onClick={() => handleCompleteTutorial(tutorial)}
                       disabled={isTutorialCompleted(tutorial._id)}
-                      className="flex items-center gap-2"
                     >
-                      {isTutorialCompleted(tutorial._id) ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          Completed
-                        </>
-                      ) : (
-                        "Mark Complete"
-                      )}
+                      {isTutorialCompleted(tutorial._id) ? "Completed" : "Mark Complete"}
                     </Button>
                   </div>
                 </CardContent>
@@ -136,7 +197,7 @@ const Tutorials = () => {
           </div>
         )}
 
-        {!loading && !error && level === "intermediate" && (
+        {level === "intermediate" && (
           <div className="grid md:grid-cols-2 gap-6">
             {intermediate.map((tutorial) => (
               <Card key={tutorial._id} className="border-primary/20 hover:border-primary transition-all">
@@ -157,16 +218,8 @@ const Tutorials = () => {
                       variant="secondary" 
                       onClick={() => handleCompleteTutorial(tutorial)}
                       disabled={isTutorialCompleted(tutorial._id)}
-                      className="flex items-center gap-2"
                     >
-                      {isTutorialCompleted(tutorial._id) ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          Completed
-                        </>
-                      ) : (
-                        "Mark Complete"
-                      )}
+                      {isTutorialCompleted(tutorial._id) ? "Completed" : "Mark Complete"}
                     </Button>
                   </div>
                 </CardContent>
@@ -175,7 +228,7 @@ const Tutorials = () => {
           </div>
         )}
 
-        {!loading && !error && level === "advanced" && (
+        {level === "advanced" && (
           <PremiumGate title="Advanced Tutorials">
             <div className="grid md:grid-cols-2 gap-6">
               {advanced.map((tutorial) => (
@@ -197,16 +250,8 @@ const Tutorials = () => {
                         variant="secondary" 
                         onClick={() => handleCompleteTutorial(tutorial)}
                         disabled={isTutorialCompleted(tutorial._id)}
-                        className="flex items-center gap-2"
                       >
-                        {isTutorialCompleted(tutorial._id) ? (
-                          <>
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                            Completed
-                          </>
-                        ) : (
-                          "Mark Complete"
-                        )}
+                        {isTutorialCompleted(tutorial._id) ? "Completed" : "Mark Complete"}
                       </Button>
                     </div>
                   </CardContent>
@@ -249,4 +294,4 @@ const Tutorials = () => {
   );
 };
 
-export default Tutorials;
+export default TutorialsClean;

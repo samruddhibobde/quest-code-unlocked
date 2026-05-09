@@ -15,9 +15,11 @@ export const Layout = ({ children, showNav = true }: LayoutProps) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('codequest-role');
-    localStorage.removeItem('codequest-language');
-    navigate('/auth');
+    localStorage.removeItem("codequest-role");
+    localStorage.removeItem("codequest-language");
+    localStorage.removeItem("codequest-level");
+    localStorage.removeItem("token");
+    navigate("/auth");
   };
 
   return (

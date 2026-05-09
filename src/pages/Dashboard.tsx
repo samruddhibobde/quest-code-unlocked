@@ -2,32 +2,116 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Trophy, Zap, Flame, Target, Star, Code2, Award, TrendingUp, BookOpen, Sword, Users, Calendar, User, UsersRound } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
-import { mockQuests, mockBadges } from "@/mock/data";
 import ChatDrawer from "@/components/chatbot/ChatDrawer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { mentorRequests } from "@/mock/mentorRequests";
+import { supportAPI } from "@/services/api";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [requestOpen, setRequestOpen] = useState(false);
-  const [topic, setTopic] = useState<string>("");
-  
-  const userStats = {
-    level: 12,
-    xp: 2450,
-    xpToNext: 3000,
-    coins: 850,
-    streak: 7,
-    rank: 342,
-  };
+  const [title, setTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [category, setCategory] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [rank, setRank] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+  const [myRequests, setMyRequests] = useState<any[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    console.log("TOKEN:", token);
+
+    if (!token) {
+      toast({
+        title: "Not logged in",
+        description: "Please login again",
+        variant: "destructive"
+      });
+      window.location.href = "/auth";
+      return;
+    }
+
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const fetchAll = async () => {
+      try {
+        const profileRes = await fetch("http://localhost:5000/api/users/profile", { headers });
+
+        if (profileRes.status === 401) {
+          window.location.href = "/auth";
+          return;
+        }
+
+        const profile = await profileRes.json();
+        setUserData(profile);
+
+        // Fetch rank separately so profile still loads if rank fails
+        try {
+          const rankRes = await fetch("http://localhost:5000/api/users/rank", { headers });
+          const rankData = await rankRes.json();
+          setRank(rankData.rank ?? 0);
+        } catch {
+          setRank(0);
+        }
+
+        // Fetch my support requests
+        try {
+          const requestsData = await supportAPI.getMyRequests();
+          setMyRequests(requestsData.requests || []);
+        } catch {
+          setMyRequests([]);
+        }
+
+      } catch (err) {
+        toast({ title: "Failed to load dashboard", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
+  }, []);
+
+  const quests = useMemo(() => [
+    {
+      title: "Complete 1 Tutorial",
+      progress: Math.min((userData?.completedTutorials?.length ?? 0) >= 1 ? 100 : 0, 100),
+      xp: 50,
+      difficulty: "Easy"
+    },
+    {
+      title: "Solve 5 Challenges",
+      progress: Math.min(((userData?.solvedProblems ?? 0) / 5) * 100, 100),
+      xp: 200,
+      difficulty: "Medium"
+    },
+    {
+      title: "Reach Level 5",
+      progress: Math.min(((userData?.level ?? 1) / 5) * 100, 100),
+      xp: 500,
+      difficulty: "Hard"
+    },
+  ], [userData]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto max-w-7xl p-8">
+          <div className="text-center py-16"><p className="text-xl">Loading your dashboard...</p></div>
+        </div>
+      </Layout>
+    );
+  }
 
   const quickLinks = [
     { icon: BookOpen, label: 'Tutorials', path: '/learner/tutorials', color: 'text-primary' },
@@ -49,7 +133,7 @@ const Dashboard = () => {
         </div>
         {/* Header */}
         <div className="mb-8 animate-slide-up">
-          <h1 className="text-4xl font-bold mb-2">Welcome back, Adventurer!</h1>
+          <h1 className="text-4xl font-bold mb-2">Welcome back, {userData?.name ?? 'Adventurer'}!</h1>
           <p className="text-muted-foreground">Continue your coding quest</p>
         </div>
 
@@ -74,28 +158,28 @@ const Dashboard = () => {
           <StatCard 
             icon={<Zap className="w-6 h-6" />}
             title="Level"
-            value={userStats.level}
-            subtitle={`${userStats.xp}/${userStats.xpToNext} XP`}
+            value={userData?.level ?? 1}
+            subtitle={`${userData?.points ?? 0}/${((userData?.level ?? 1) * 100)} XP`}
             color="primary"
           />
           <StatCard 
             icon={<Trophy className="w-6 h-6" />}
             title="Coins"
-            value={userStats.coins}
+            value={userData?.points ?? 0}
             subtitle="Earned"
             color="accent"
           />
           <StatCard 
             icon={<Flame className="w-6 h-6" />}
-            title="Streak"
-            value={`${userStats.streak} days`}
+            title="Solved"
+            value={userData?.solvedProblems ?? 0}
             subtitle="Keep it up!"
             color="destructive"
           />
           <StatCard 
             icon={<TrendingUp className="w-6 h-6" />}
             title="Rank"
-            value={`#${userStats.rank}`}
+            value={`#${rank}`}
             subtitle="Global"
             color="secondary"
           />
@@ -110,9 +194,9 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Progress value={(userStats.xp / userStats.xpToNext) * 100} className="h-3" />
+            <Progress value={(( userData?.points ?? 0) / ((userData?.level ?? 1) * 100)) * 100} className="h-3" />
             <p className="text-sm text-muted-foreground mt-2">
-              {userStats.xpToNext - userStats.xp} XP until Level {userStats.level + 1}
+              {((userData?.level ?? 1) * 100) - (userData?.points ?? 0)} XP until Level {(userData?.level ?? 1) + 1}
             </p>
           </CardContent>
         </Card>
@@ -128,8 +212,8 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockQuests.slice(0, 3).map((quest) => (
-                <QuestCard key={quest.id} quest={quest} />
+              {quests.map((quest) => (
+                <QuestCard key={quest.title} quest={quest} />
               ))}
             </CardContent>
           </Card>
@@ -150,13 +234,43 @@ const Dashboard = () => {
               <div>
                 <p className="text-sm font-medium mb-2">My Mentor Requests</p>
                 <div className="space-y-2">
-                  {mentorRequests.length === 0 && <p className="text-xs text-muted-foreground">No requests yet.</p>}
-                  {mentorRequests.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between text-sm p-2 border rounded">
-                      <span>{r.topic}</span>
-                      <span className="text-xs rounded-full px-2 py-0.5 bg-secondary text-secondary-foreground">{r.status}</span>
-                    </div>
-                  ))}
+                  {myRequests.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      No requests yet. Click above to request mentor support.
+                    </p>
+                  ) : (
+                    myRequests.map((request) => (
+                      <div key={request._id} className="p-3 border rounded text-xs">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-medium text-sm">{request.title}</p>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            request.status === 'resolved' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {request.status}
+                          </span>
+                        </div>
+                        <div className="mb-2">
+                          <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs mr-2">
+                            {request.category}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {new Date(request.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground mb-2 line-clamp-2">
+                          {request.description}
+                        </p>
+                        {request.mentorResponse && (
+                          <div className="mt-2 p-2 bg-green-50 rounded text-green-800">
+                            <p className="font-medium text-xs mb-1">Mentor Response:</p>
+                            <p className="text-xs">{request.mentorResponse}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -172,22 +286,98 @@ const Dashboard = () => {
           <DialogTitle>Request a Mentor Session</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <Label>Topic / Problem Area</Label>
-          <Select value={topic} onValueChange={setTopic}>
-            <SelectTrigger><SelectValue placeholder="Choose a topic" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="loops">Loops</SelectItem>
-              <SelectItem value="arrays">Arrays</SelectItem>
-              <SelectItem value="recursion">Recursion</SelectItem>
-            </SelectContent>
-          </Select>
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Brief title of your doubt"
+            />
+          </div>
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Bug/Error">Bug/Error</SelectItem>
+                <SelectItem value="Code not working">Code not working</SelectItem>
+                <SelectItem value="Concept doubt">Concept doubt</SelectItem>
+                <SelectItem value="Logic help">Logic help</SelectItem>
+                <SelectItem value="Assignment help">Assignment help</SelectItem>
+                <SelectItem value="Project guidance">Project guidance</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe your doubt in detail..."
+              className="w-full min-h-[100px] p-3 rounded bg-gray-900 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+          </div>
           <div className="flex justify-end">
-            <Button onClick={() => {
-              if (!topic) return;
-              mentorRequests.push({ id: Date.now(), student: "You", topic, status: "Pending" });
-              toast({ title: "Mentor request sent!" });
-              setRequestOpen(false);
-            }}>Submit</Button>
+            <Button onClick={async () => {
+  if (!title || !description || !category) {
+    toast({ title: "Please fill all fields" });
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    const token = localStorage.getItem("token");
+
+    console.log("Submitting request...");
+    console.log("Title:", title);
+    console.log("Description:", description);
+    console.log("Category:", category);
+    console.log("Token:", token);
+
+    console.log("Sending request data:", { title, description, category });
+
+    const data = await supportAPI.createRequest(title, description, category);
+
+    console.log("Response:", data);
+
+    toast({
+      title: "Request sent successfully!",
+      description: "Mentor will respond soon",
+    });
+
+    // Clear form
+    setTitle("");
+    setDescription("");
+    setCategory("");
+    setRequestOpen(false);
+
+    // Refresh requests
+    try {
+      const requestsData = await supportAPI.getMyRequests();
+      setMyRequests(requestsData.requests || []);
+    } catch {
+      setMyRequests([]);
+    }
+
+  } catch (error) {
+    console.error(error);
+    toast({
+      title: "Failed to send request",
+      description: String(error),
+      variant: "destructive",
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+}} disabled={isSubmitting}>
+  {isSubmitting ? "Submitting..." : "Submit"}
+</Button>
           </div>
         </div>
       </DialogContent>

@@ -4,19 +4,32 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AuthProvider } from "@/components/AuthProvider";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import LanguageSelect from "./pages/LanguageSelect";
 import Dashboard from "./pages/Dashboard";
 import Tutorials from "./pages/learner/Tutorials";
+import TutorialsClean from "./pages/learner/TutorialsClean";
+import SimpleTutorials from "./pages/learner/SimpleTutorials";
 import GetStarted from "./pages/learner/GetStarted";
 import Editor from "./pages/learner/Editor";
 import Challenges from "./pages/learner/Challenges";
 import Gamification from "./pages/learner/Gamification";
 import Quests from "./pages/learner/Quests";
+import StoryEditor from "./pages/learner/StoryEditor";
 import Leaderboard from "./pages/learner/Leaderboard";
 import Tracker from "./pages/learner/Tracker";
 import Avatar from "./pages/learner/Avatar";
+import TestConnection from "./pages/TestConnection";
+import TutorialTest from "./pages/TutorialTest";
+import TokenTest from "./pages/TokenTest";
+import CleanTest from "./pages/CleanTest";
+import SimpleTest from "./pages/SimpleTest";
+import ValidLoginTest from "./pages/ValidLoginTest";
+import TutorialsDebug from "./pages/TutorialsDebug";
+import TickMarkTest from "./pages/TickMarkTest";
+import LoginTest from "./pages/LoginTest";
 import NotFound from "./pages/NotFound";
 import LevelPrompt from "./components/learner/LevelPrompt";
 import MentorDashboardPage from "./pages/mentor/Dashboard";
@@ -37,22 +50,35 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            
-            <Route path="/level-prompt" element={<Index />} />
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/test-connection" element={<TestConnection />} />
+              <Route path="/tutorial-test" element={<TutorialTest />} />
+              <Route path="/token-test" element={<TokenTest />} />
+              <Route path="/clean-test" element={<CleanTest />} />
+              <Route path="/simple-test" element={<SimpleTest />} />
+              <Route path="/valid-login-test" element={<ValidLoginTest />} />
+              <Route path="/tutorials-debug" element={<TutorialsDebug />} />
+              <Route path="/tick-mark-test" element={<TickMarkTest />} />
+              <Route path="/login-test" element={<LoginTest />} />
+              
+              <Route path="/level-prompt" element={<Index />} />
             
             {/* Learner Routes */}
             <Route path="/learner/language" element={<LanguageSelect />} />
             <Route path="/learner/get-started" element={<GetStarted />} />
             <Route path="/learner/dashboard" element={<Dashboard />} />
             <Route path="/learner/tutorials" element={<Tutorials />} />
+            <Route path="/learner/tutorials-clean" element={<TutorialsClean />} />
+            <Route path="/learner/tutorials-simple" element={<SimpleTutorials />} />
             <Route path="/learner/editor" element={<Editor />} />
+            <Route path="/learner/story-editor" element={<StoryEditor />} />
             <Route path="/learner/challenges" element={<Challenges />} />
             <Route path="/learner/gamification" element={<Gamification />} />
             <Route path="/learner/quests" element={<Quests />} />
@@ -86,6 +112,7 @@ const App = () => (
         </BrowserRouter>
         <LevelPrompt />
       </TooltipProvider>
+    </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );
