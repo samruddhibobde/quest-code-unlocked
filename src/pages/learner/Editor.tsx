@@ -133,7 +133,7 @@ const Editor = () => {
     if (!auto && problem) {
       try {
         const token = localStorage.getItem("token");
-        await fetch("http://localhost:5000/api/users/add-points", {
+        await fetch("https://codequest-backend-yrse.onrender.com/api/users/add-points", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

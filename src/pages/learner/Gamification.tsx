@@ -17,7 +17,7 @@ const Gamification = () => {
     const fetchUserData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:5000/api/users/profile", {
+        const res = await fetch("https://codequest-backend-yrse.onrender.com/api/users/profile", {
           headers: { Authorization: `Bearer ${token}` }
         });
         

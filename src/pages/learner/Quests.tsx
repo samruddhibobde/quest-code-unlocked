@@ -32,7 +32,7 @@ const Quests = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch("http://localhost:5000/api/users/quest-progress", {
+    fetch("https://codequest-backend-yrse.onrender.com/api/users/quest-progress", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())

@@ -118,7 +118,7 @@ const TestConnection = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p><strong>Backend URL:</strong> http://localhost:5000</p>
+                <p><strong>Backend URL:</strong> https://codequest-backend-yrse.onrender.com</p>
                 <p><strong>Frontend URL:</strong> http://localhost:8080</p>
                 <p><strong>Authentication:</strong> <span className="text-green-600">✅ Working</span></p>
                 <p><strong>Tutorials API:</strong> {tutorials.length > 0 ? <span className="text-green-600">✅ Working</span> : <span className="text-yellow-600">⏳ Not tested</span>}</p>

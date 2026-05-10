@@ -1,6 +1,6 @@
 // CLEAN API SERVICE - Simplified Authentication
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://codequest-backend-yrse.onrender.com/api';
 
 // Simple token functions - ONLY use "token" key
 export const getToken = (): string | null => {

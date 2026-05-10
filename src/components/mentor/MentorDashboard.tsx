@@ -26,7 +26,7 @@ export default function MentorDashboard() {
     const fetchAll = async () => {
       try {
         // Fetch mentor stats
-        const statsRes = await fetch("http://localhost:5000/api/users/mentor-stats", {
+        const statsRes = await fetch("https://codequest-backend-yrse.onrender.com/api/users/mentor-stats", {
           headers: { Authorization: `Bearer ${token}` }
         });
         

@@ -69,7 +69,7 @@ const Auth = () => {
     if (!validateLoginForm()) return;
 
     try {
-      const res = await fetch("http://localhost:5000/api/users/login", {
+      const res = await fetch("https://codequest-backend-yrse.onrender.com/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -131,7 +131,7 @@ const Auth = () => {
     if (!validateRegisterForm()) return;
 
     try {
-      const res = await fetch("http://localhost:5000/api/users/register", {
+      const res = await fetch("https://codequest-backend-yrse.onrender.com/api/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, role }),

@@ -19,7 +19,7 @@ export default function MentorStudentsPage() {
 		const token = localStorage.getItem("token");
 		if (!token) { window.location.href = "/auth"; return; }
 
-		fetch("http://localhost:5000/api/users/mentor-stats", {
+		fetch("https://codequest-backend-yrse.onrender.com/api/users/mentor-stats", {
 			headers: { Authorization: `Bearer ${token}` }
 		})
 			.then(res => res.json())

@@ -24,7 +24,7 @@ export default function MentorSessionsPage() {
 	useEffect(() => {
 		const token = localStorage.getItem("token");
 		if (!token) return;
-		fetch("http://localhost:5000/api/users/sessions", {
+		fetch("https://codequest-backend-yrse.onrender.com/api/users/sessions", {
 			headers: { Authorization: `Bearer ${token}` }
 		})
 			.then(res => res.json())
@@ -102,7 +102,7 @@ export default function MentorSessionsPage() {
 							if (!active) return;
 							const token = localStorage.getItem("token");
 							try {
-								await fetch(`http://localhost:5000/api/users/sessions/${active.id}/complete`, {
+								await fetch(`https://codequest-backend-yrse.onrender.com/api/users/sessions/${active.id}/complete`, {
 									method: "PATCH",
 									headers: { Authorization: `Bearer ${token}` },
 								});
@@ -139,7 +139,7 @@ export default function MentorSessionsPage() {
 								if (!title || !student || !time) return;
 								const token = localStorage.getItem("token");
 								try {
-									const res = await fetch("http://localhost:5000/api/users/sessions", {
+									const res = await fetch("https://codequest-backend-yrse.onrender.com/api/users/sessions", {
 										method: "POST",
 										headers: {
 											"Content-Type": "application/json",

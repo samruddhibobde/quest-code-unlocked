@@ -1,6 +1,6 @@
 // Simple Authentication - No Over-Engineering
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://codequest-backend-yrse.onrender.com/api';
 
 export const simpleLogin = async (email: string, password: string) => {
   try {

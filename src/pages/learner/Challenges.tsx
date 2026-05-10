@@ -29,7 +29,7 @@ const Challenges = () => {
     const fetchProblems = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:5000/api/problems", {
+        const res = await fetch("https://codequest-backend-yrse.onrender.com/api/problems", {
           headers: { Authorization: `Bearer ${token}` }
         });
         

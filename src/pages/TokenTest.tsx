@@ -53,7 +53,7 @@ const TokenTest = () => {
     setLoading(true);
     try {
       console.log("=== LOGIN TEST ===");
-      const response = await fetch("http://localhost:5000/api/users/login", {
+      const response = await fetch("https://codequest-backend-yrse.onrender.com/api/users/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -89,7 +89,7 @@ const TokenTest = () => {
 
     try {
       // First get a tutorial ID
-      const tutorialsResponse = await fetch("http://localhost:5000/api/tutorials");
+      const tutorialsResponse = await fetch("https://codequest-backend-yrse.onrender.com/api/tutorials");
       const tutorialsData = await tutorialsResponse.json();
       
       if (tutorialsData.tutorials && tutorialsData.tutorials.length > 0) {

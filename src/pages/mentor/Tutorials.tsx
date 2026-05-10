@@ -16,7 +16,7 @@ export default function MentorTutorialsPage() {
     const token = localStorage.getItem("token");
     if (!token) { window.location.href = "/auth"; return; }
 
-    fetch("http://localhost:5000/api/tutorials", {
+    fetch("https://codequest-backend-yrse.onrender.com/api/tutorials", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())

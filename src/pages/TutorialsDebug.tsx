@@ -18,7 +18,7 @@ const TutorialsDebug = () => {
       setError("No token found - please login first");
     } else {
       // Test API call
-      fetch("http://localhost:5000/api/tutorials", {
+      fetch("https://codequest-backend-yrse.onrender.com/api/tutorials", {
         headers: {
           "Authorization": `Bearer ${storedToken}`
         }

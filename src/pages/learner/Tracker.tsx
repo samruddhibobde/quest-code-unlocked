@@ -17,7 +17,7 @@ const Tracker = () => {
     const token = localStorage.getItem("token");
     if (!token) { window.location.href = "/auth"; return; }
 
-    fetch("http://localhost:5000/api/users/profile", {
+    fetch("https://codequest-backend-yrse.onrender.com/api/users/profile", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {

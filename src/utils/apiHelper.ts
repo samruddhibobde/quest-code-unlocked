@@ -75,7 +75,7 @@ export const markComplete = async (tutorialId: string) => {
     const headers = getAuthHeaders();
     console.log("Headers:", headers);
     
-    const res = await fetch("http://localhost:5000/api/tutorials/complete", {
+    const res = await fetch("https://codequest-backend-yrse.onrender.com/api/tutorials/complete", {
       method: "POST",
       headers,
       body: JSON.stringify({ tutorialId })

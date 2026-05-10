@@ -14,7 +14,7 @@ const TickMarkTest = () => {
     
     // Load completed tutorials from backend
     if (storedToken) {
-      fetch("http://localhost:5000/api/users/profile", {
+      fetch("https://codequest-backend-yrse.onrender.com/api/users/profile", {
         headers: {
           "Authorization": `Bearer ${storedToken}`
         }
@@ -38,7 +38,7 @@ const TickMarkTest = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/tutorials/complete", {
+      const res = await fetch("https://codequest-backend-yrse.onrender.com/api/tutorials/complete", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

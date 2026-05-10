@@ -47,7 +47,7 @@ export const ValidAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (storedToken) {
         setToken(storedToken);
         // Verify token and get user data
-        const profileRes = await fetch(`http://localhost:5000/api/users/profile`, {
+        const profileRes = await fetch(`https://codequest-backend-yrse.onrender.com/api/users/profile`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

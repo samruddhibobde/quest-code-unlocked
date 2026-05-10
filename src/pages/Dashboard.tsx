@@ -45,7 +45,7 @@ const Dashboard = () => {
 
     const fetchAll = async () => {
       try {
-        const profileRes = await fetch("http://localhost:5000/api/users/profile", { headers });
+        const profileRes = await fetch("https://codequest-backend-yrse.onrender.com/api/users/profile", { headers });
 
         if (profileRes.status === 401) {
           window.location.href = "/auth";
@@ -57,7 +57,7 @@ const Dashboard = () => {
 
         // Fetch rank separately so profile still loads if rank fails
         try {
-          const rankRes = await fetch("http://localhost:5000/api/users/rank", { headers });
+          const rankRes = await fetch("https://codequest-backend-yrse.onrender.com/api/users/rank", { headers });
           const rankData = await rankRes.json();
           setRank(rankData.rank ?? 0);
         } catch {

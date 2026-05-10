@@ -76,7 +76,7 @@ const StoryEditor = () => {
     try {
       const token = localStorage.getItem("token");
       if (token) {
-        await fetch("http://localhost:5000/api/users/add-points", {
+        await fetch("https://codequest-backend-yrse.onrender.com/api/users/add-points", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
