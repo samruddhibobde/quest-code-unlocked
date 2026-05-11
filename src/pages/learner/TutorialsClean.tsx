@@ -9,6 +9,14 @@ import { useToast } from "@/hooks/use-toast";
 import PremiumGate from "@/components/PremiumGate";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+const getEmbedUrl = (url: string) => {
+  if (url.includes("embed")) return url;
+
+  const videoId = url.split("v=")[1]?.split("&")[0];
+
+  return `https://www.youtube.com/embed/${videoId}`;
+};
+
 interface Tutorial {
   _id: string;
   title: string;
@@ -277,11 +285,11 @@ const TutorialsClean = () => {
             {/* Use iframe for YouTube embed URLs */}
             {openVideo?.src ? (
               <iframe
-                src={openVideo.src}
+                src={getEmbedUrl(openVideo.src)}
                 width="100%"
                 height="100%"
                 allowFullScreen
-                className="w-full h-full border-0"
+                className="w-full h-full border-0 rounded-lg"
                 title={openVideo.title}
               />
             ) : (

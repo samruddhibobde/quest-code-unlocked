@@ -12,6 +12,14 @@ import PremiumGate from "@/components/PremiumGate";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tutorial } from "@/services/api";
 
+const getEmbedUrl = (url: string) => {
+  if (url.includes("embed")) return url;
+
+  const videoId = url.split("v=")[1]?.split("&")[0];
+
+  return `https://www.youtube.com/embed/${videoId}`;
+};
+
 const Tutorials = () => {
   const { toast } = useToast();
   const [level, setLevel] = useState<string>(localStorage.getItem("codequest-level") || "beginner");
@@ -232,11 +240,11 @@ const Tutorials = () => {
             {/* Use iframe for YouTube embed URLs */}
             {openVideo?.src ? (
               <iframe
-                src={openVideo.src}
+                src={getEmbedUrl(openVideo.src)}
                 width="100%"
                 height="100%"
                 allowFullScreen
-                className="w-full h-full border-0"
+                className="w-full h-full border-0 rounded-lg"
                 title={openVideo.title}
               />
             ) : (
